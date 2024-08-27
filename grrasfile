@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('clone') {
+            steps {
+                git 'https://github.com/Bohramohammed/pipeline.git'
+            }
+        }
+        stage('build') {
+            steps {
+                sh '''docker build -t mdbohra/bohra:$BUILD_ID .
+                docker push mdbohra/bohra:$BUILD_ID'''
+            }
+        }
+        stage('test') {
+            steps {
+                echo 'contineous testing'
+            }
+        }
+        stage('deployment') {
+            steps {
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'docker ', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''docker image rm -f mdbohra/bohra:$BUILD_ID
+                docker container stop webserver
+                docker container rm -f webserver 
+                docker container run -d --name webserver -p 80:80 mdbohra/bohra:$BUILD_ID''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+        }
+    }
+}
